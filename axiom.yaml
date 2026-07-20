@@ -1,6 +1,16 @@
 name: christiangeorgelucas/json-schema-tools
 version: 0.1.0
 language: go
+description: >-
+  Composable JSON Schema validation nodes — validate an instance against a
+  schema, validate many instances in one call, and check that a document is
+  itself a valid schema — for Drafts 4, 6, 7, 2019-09 and 2020-12. Wraps the
+  Apache-2.0 santhosh-tekuri/jsonschema library. Stateless, offline, and
+  deterministic; external "$ref" resolution is disabled (no SSRF or local file
+  reads), pattern matching is linear-time (RE2, no ReDoS), and every node
+  returns structured errors rather than crashing on malformed input.
+author: Christian George Lucas
+license: MIT
 nodes:
     - name: Validate
       input: ValidateRequest
