@@ -1,5 +1,5 @@
 name: christiangeorgelucas/json-schema-tools
-version: 0.2.0
+version: 0.3.0
 language: go
 description: >-
   Composable JSON Schema validation nodes — validate an instance against a
@@ -13,11 +13,35 @@ author: Christian George Lucas
 license: MIT
 nodes:
     - name: Validate
+      description: >-
+        Validates one JSON instance against one JSON Schema and returns whether
+        it conforms, plus a sorted, deterministic list of structured errors —
+        each with the instance path, the failing schema keyword path, and a
+        message. Auto-detects the draft from the schema's "$schema" (Drafts 4,
+        6, 7, 2019-09, 2020-12), defaulting to 2020-12; set assert_formats to
+        enforce "format" keywords. External "$ref" (file/http/https) is rejected,
+        never fetched, so validation is offline and deterministic. Malformed
+        input returns a structured error instead of crashing.
       input: ValidateRequest
       output: ValidateResponse
     - name: ValidateMany
+      description: >-
+        Validates many JSON instances against a single JSON Schema in one call,
+        compiling the schema once, and returns one result per instance in input
+        order (each with its index, validity, and sorted structured errors). A
+        per-instance malformed input is reported on that instance without
+        failing the batch; an unusable schema fails the whole call with a
+        structured error. Same draft handling, format assertion, and disabled
+        external "$ref" resolution as Validate.
       input: ValidateManyRequest
       output: ValidateManyResponse
     - name: CheckSchema
+      description: >-
+        Checks that a document is itself a valid, compilable JSON Schema for the
+        detected or selected draft, returning valid=true or a list of structured
+        reasons why not (invalid JSON, a meta-schema violation, or an
+        unresolvable/rejected "$ref"). Useful for validating a schema before you
+        rely on it. External "$ref" resolution is disabled; an unknown draft or
+        oversized input is reported via the error field.
       input: CheckSchemaRequest
       output: CheckSchemaResponse
