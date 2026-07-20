@@ -1,0 +1,127 @@
+// This file defines the data contracts (messages) for your Axiom package.
+// Every node's --input and --output refers to a message defined here.
+//
+// Run `axiom create message <Name>` to scaffold a new message below.
+// Run `axiom generate` to compile these definitions into language bindings in gen/.
+//
+// DOCUMENTATION
+//   Comments written directly above a message or field declaration are extracted
+//   automatically at publish time and shown in the Axiom registry as documentation.
+//   Write your descriptions there — no separate doc files needed.
+//
+//   Leading comment  (no blank line before the declaration) → registry description ✓
+//   Detached comment (blank line before the declaration)    → ignored by registry  ✗
+//
+// This file is yours to edit. Axiom only appends new message blocks — it never
+// overwrites or removes content you have written.
+
+syntax = "proto3";
+
+package christiangeorgelucas.json_schema_tools;
+
+option go_package = ".;gen";
+
+// A single JSON Schema validation error: where in the instance it occurred,
+// which schema keyword failed, and a human-readable message.
+message SchemaError {
+  // JSON Pointer (RFC 6901) to the failing location within the instance,
+  // e.g. "/items/2/price". Empty string means the document root.
+  string instance_path = 1;
+  // JSON Pointer to the schema keyword that produced the error,
+  // e.g. "/properties/price/minimum".
+  string keyword_path = 2;
+  // Human-readable description of why validation failed at this location.
+  string message = 3;
+}
+
+// Input for Validate: one JSON Schema document and one JSON instance to check.
+message ValidateRequest {
+  // The JSON Schema document, as JSON text. Its draft is auto-detected from
+  // the "$schema" field; when absent, the "draft" field (or the latest draft)
+  // is used. External "$ref" to file:// or http(s):// URLs is rejected — only
+  // references internal to this document are resolved.
+  string schema = 1;
+  // The JSON value to validate, as JSON text (object, array, string, number,
+  // boolean, or null).
+  string instance = 2;
+  // Optional default draft for schemas that omit "$schema". One of:
+  // "4", "6", "7", "2019", "2020". Defaults to "2020" (Draft 2020-12).
+  string draft = 3;
+  // When true, "format" keywords (email, date-time, uri, ipv4, ...) are
+  // asserted rather than treated as annotations only (the JSON Schema default).
+  bool assert_formats = 4;
+}
+
+// Output for Validate: whether the instance conforms, plus any errors.
+message ValidateResponse {
+  // True if the instance conforms to the schema.
+  bool valid = 1;
+  // The validation errors when valid is false; empty when valid is true.
+  repeated SchemaError errors = 2;
+  // Set (non-empty) only when validation could not be performed at all:
+  // malformed schema/instance JSON, a rejected external "$ref", an
+  // uncompilable schema, or an input that exceeds the size limits. When set,
+  // valid is false and errors is empty.
+  string error = 3;
+}
+
+// Input for ValidateMany: one schema checked against many instances in a
+// single call (the schema is compiled once).
+message ValidateManyRequest {
+  // The JSON Schema document, as JSON text (see ValidateRequest.schema).
+  string schema = 1;
+  // The JSON instances to validate, each as JSON text.
+  repeated string instances = 2;
+  // Optional default draft for schemas that omit "$schema" (see
+  // ValidateRequest.draft).
+  string draft = 3;
+  // When true, assert "format" keywords (see ValidateRequest.assert_formats).
+  bool assert_formats = 4;
+}
+
+// The validation outcome for one instance in a ValidateMany batch.
+message InstanceResult {
+  // Zero-based position of this instance in the request's "instances" list.
+  int32 index = 1;
+  // True if this instance conforms to the schema.
+  bool valid = 2;
+  // The validation errors for this instance; empty when valid is true.
+  repeated SchemaError errors = 3;
+  // Set (non-empty) if this specific instance was not valid JSON. When set,
+  // valid is false and errors is empty.
+  string error = 4;
+}
+
+// Output for ValidateMany: one result per input instance, in order.
+message ValidateManyResponse {
+  // One result per input instance, in the same order as the request.
+  repeated InstanceResult results = 1;
+  // Set (non-empty) only when the schema itself could not be processed
+  // (malformed JSON, rejected external "$ref", uncompilable, or oversize),
+  // in which case results is empty.
+  string error = 2;
+}
+
+// Input for CheckSchema: verify that a document is itself a valid JSON Schema.
+message CheckSchemaRequest {
+  // The candidate JSON Schema document, as JSON text.
+  string schema = 1;
+  // Optional default draft used when the schema omits "$schema"
+  // (see ValidateRequest.draft).
+  string draft = 2;
+}
+
+// Output for CheckSchema: whether the document is a well-formed, compilable
+// JSON Schema.
+message CheckSchemaResponse {
+  // True if the document is valid JSON and compiles as a JSON Schema of the
+  // detected/selected draft.
+  bool valid = 1;
+  // When valid is false, one or more reasons the document is not a usable
+  // schema (invalid JSON, meta-schema violation, unresolvable internal "$ref",
+  // rejected external "$ref"). Empty when valid is true.
+  repeated SchemaError errors = 2;
+  // Set (non-empty) only when the input exceeded the size limits, in which
+  // case valid is false and errors is empty.
+  string error = 3;
+}

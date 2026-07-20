@@ -1,0 +1,13 @@
+name: christiangeorgelucas/json-schema-tools
+version: 0.1.0
+language: go
+nodes:
+    - name: Validate
+      input: ValidateRequest
+      output: ValidateResponse
+    - name: ValidateMany
+      input: ValidateManyRequest
+      output: ValidateManyResponse
+    - name: CheckSchema
+      input: CheckSchemaRequest
+      output: CheckSchemaResponse
