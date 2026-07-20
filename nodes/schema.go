@@ -3,6 +3,7 @@ package nodes
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	gen "christiangeorgelucas/json-schema-tools/gen"
@@ -160,6 +161,18 @@ func toSchemaErrors(ve *jsonschema.ValidationError) []*gen.SchemaError {
 			Message:      ve.Error(),
 		})
 	}
+	// The library's Basic output derives from Go map iteration, whose order is
+	// randomized, so sort into a stable order to honor the deterministic-output
+	// contract: identical input always yields byte-identical output.
+	sort.SliceStable(errs, func(i, j int) bool {
+		if errs[i].InstancePath != errs[j].InstancePath {
+			return errs[i].InstancePath < errs[j].InstancePath
+		}
+		if errs[i].KeywordPath != errs[j].KeywordPath {
+			return errs[i].KeywordPath < errs[j].KeywordPath
+		}
+		return errs[i].Message < errs[j].Message
+	})
 	return errs
 }
 

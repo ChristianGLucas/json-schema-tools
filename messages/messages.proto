@@ -121,7 +121,9 @@ message CheckSchemaResponse {
   // schema (invalid JSON, meta-schema violation, unresolvable internal "$ref",
   // rejected external "$ref"). Empty when valid is true.
   repeated SchemaError errors = 2;
-  // Set (non-empty) only when the input exceeded the size limits, in which
-  // case valid is false and errors is empty.
+  // Set (non-empty) only when the request could not be processed at all: an
+  // unknown "draft" value, or input over the size limit. In that case valid is
+  // false and errors is empty. A document that is simply not a valid schema is
+  // reported via valid=false and errors, not here.
   string error = 3;
 }

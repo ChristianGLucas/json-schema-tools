@@ -242,15 +242,30 @@ func TestValidate_Determinism(t *testing.T) {
 		Instance: `{"a":"nope","b":"x"}`,
 	}
 	first := validate(t, req)
-	for i := 0; i < 20; i++ {
-		got := validate(t, req)
-		if got.Valid != first.Valid || len(got.Errors) != len(first.Errors) {
-			t.Fatalf("nondeterministic: run %d valid=%v errs=%d vs first valid=%v errs=%d", i, got.Valid, len(got.Errors), first.Valid, len(first.Errors))
-		}
-	}
 	if first.Valid {
 		t.Fatal("fixture should be invalid")
 	}
+	if len(first.Errors) < 2 {
+		t.Fatalf("fixture should surface multiple errors to exercise ordering, got %d", len(first.Errors))
+	}
+	firstKey := errorKey(first.Errors)
+	for i := 0; i < 50; i++ {
+		got := validate(t, req)
+		// Full ordered comparison: the exact sequence of (path, keyword, message)
+		// must be byte-identical every run, not merely the same count.
+		if k := errorKey(got.Errors); k != firstKey {
+			t.Fatalf("nondeterministic output on run %d:\n first: %s\n got:   %s", i, firstKey, k)
+		}
+	}
+}
+
+// errorKey renders the ordered error list into a single comparable string.
+func errorKey(errs []*gen.SchemaError) string {
+	parts := make([]string, len(errs))
+	for i, e := range errs {
+		parts[i] = e.InstancePath + "|" + e.KeywordPath + "|" + e.Message
+	}
+	return strings.Join(parts, "\n")
 }
 
 // TestValidate_FormatAssertion backs the assert_formats claim: "format" is an
