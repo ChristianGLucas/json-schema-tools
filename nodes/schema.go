@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	gen "christiangeorgelucas/json-schema-tools/gen"
@@ -186,4 +187,93 @@ func compileErrorToSchemaErrors(err error) []*gen.SchemaError {
 		}
 	}
 	return []*gen.SchemaError{{Message: err.Error()}}
+}
+
+// describeSchema reads structural metadata off an already-compiled schema —
+// draft, root type, documentation annotations, and top-level properties — for
+// DescribeSchema. It never validates an instance; it only reports what the
+// compiler already parsed out of the schema document itself.
+//
+// A root-level "$ref" is resolved through exactly one level (never
+// recursively — the compiled schema graph can contain real Go-pointer cycles
+// for recursive schemas, e.g. via $ref/$dynamicRef, so an unbounded walk
+// would risk an infinite loop) so a schema of the common shape
+// {"$ref": "#/$defs/Foo"} still reports Foo's shape rather than nothing.
+func describeSchema(sch *jsonschema.Schema) *gen.DescribeSchemaResponse {
+	resp := &gen.DescribeSchemaResponse{Draft: strconv.Itoa(sch.DraftVersion)}
+
+	if sch.Bool != nil {
+		// A boolean schema ("true"/"false"): no type/properties/annotations.
+		resp.IsBooleanSchema = true
+		resp.BooleanSchemaValue = *sch.Bool
+		return resp
+	}
+
+	resp.HasRef = sch.Ref != nil
+	eff := sch // the schema to read type/required/properties from
+	if sch.Ref != nil {
+		eff = sch.Ref
+	}
+
+	if eff.Types != nil {
+		resp.Types = eff.Types.ToStrings()
+	}
+	resp.Required = append([]string{}, eff.Required...)
+	if len(eff.Properties) > 0 {
+		names := make([]string, 0, len(eff.Properties))
+		for name := range eff.Properties {
+			names = append(names, name)
+		}
+		sort.Strings(names) // deterministic output: map iteration order is randomized
+		resp.Properties = make([]*gen.SchemaProperty, 0, len(names))
+		for _, name := range names {
+			propSch := eff.Properties[name]
+			propEff := propSch
+			if propSch.Ref != nil {
+				propEff = propSch.Ref
+			}
+			var types []string
+			if propEff.Types != nil {
+				types = propEff.Types.ToStrings()
+			}
+			resp.Properties = append(resp.Properties, &gen.SchemaProperty{Name: name, Types: types})
+		}
+	}
+
+	// Documentation annotations: prefer the root schema's own value; for a
+	// bare {"$ref": ...} root that declares none of its own, fall back to the
+	// referenced schema's.
+	title, desc := sch.Title, sch.Description
+	deprecated, readOnly, writeOnly := sch.Deprecated, sch.ReadOnly, sch.WriteOnly
+	def, examples := sch.Default, sch.Examples
+	if sch.Ref != nil {
+		if title == "" {
+			title = eff.Title
+		}
+		if desc == "" {
+			desc = eff.Description
+		}
+		deprecated = deprecated || eff.Deprecated
+		readOnly = readOnly || eff.ReadOnly
+		writeOnly = writeOnly || eff.WriteOnly
+		if def == nil {
+			def = eff.Default
+		}
+		if len(examples) == 0 {
+			examples = eff.Examples
+		}
+	}
+	resp.Title = title
+	resp.Description = desc
+	resp.Deprecated = deprecated
+	resp.ReadOnly = readOnly
+	resp.WriteOnly = writeOnly
+	if def != nil {
+		resp.HasDefault = true
+		if b, err := json.Marshal(*def); err == nil {
+			resp.DefaultJson = string(b)
+		}
+	}
+	resp.ExamplesCount = int32(len(examples))
+	return resp
 }

@@ -1,14 +1,15 @@
 name: christiangeorgelucas/json-schema-tools
-version: 0.3.0
+version: 0.4.0
 language: go
 description: >-
   Composable JSON Schema validation nodes — validate an instance against a
-  schema, validate many instances in one call, and check that a document is
-  itself a valid schema — for Drafts 4, 6, 7, 2019-09 and 2020-12. Wraps the
-  Apache-2.0 santhosh-tekuri/jsonschema library. Stateless, offline, and
-  deterministic; external "$ref" resolution is disabled (no SSRF or local file
-  reads), pattern matching is linear-time (RE2, no ReDoS), and every node
-  returns structured errors rather than crashing on malformed input.
+  schema, validate many instances in one call, check that a document is
+  itself a valid schema, and describe a schema's own structure — for Drafts
+  4, 6, 7, 2019-09 and 2020-12. Wraps the Apache-2.0 santhosh-tekuri/jsonschema
+  library. Stateless, offline, and deterministic; external "$ref" resolution
+  is disabled (no SSRF or local file reads), pattern matching is linear-time
+  (RE2, no ReDoS), and every node returns structured errors rather than
+  crashing on malformed input.
 author: Christian George Lucas
 license: MIT
 nodes:
@@ -45,3 +46,18 @@ nodes:
         oversized input is reported via the error field.
       input: CheckSchemaRequest
       output: CheckSchemaResponse
+    - name: DescribeSchema
+      description: >-
+        Compiles a JSON Schema and reports structural metadata about the schema
+        itself — no instance required: the effective draft (auto-detected from
+        "$schema" or the requested default), the root's allowed JSON types,
+        "title"/"description"/"deprecated"/"readOnly"/"writeOnly" annotations,
+        "required" property names, and the top-level "properties" with their own
+        type constraints. A root-level "$ref" is resolved through one level so
+        the referenced shape is still reported. Boolean schemas ("true"/"false")
+        are reported via is_boolean_schema. Same draft handling and disabled
+        external "$ref" resolution as the other nodes; a schema that fails to
+        compile is reported via the error field (use CheckSchema first for the
+        detailed reasons).
+      input: CheckSchemaRequest
+      output: DescribeSchemaResponse

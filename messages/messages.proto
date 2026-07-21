@@ -127,3 +127,68 @@ message CheckSchemaResponse {
   // reported via valid=false and errors, not here.
   string error = 3;
 }
+
+// One property declared directly on a schema's "properties", with the JSON
+// types it allows (when a "type" constraint is present).
+message SchemaProperty {
+  // The property name.
+  string name = 1;
+  // The JSON types this property allows ("string", "integer", "object", ...).
+  // Empty when the property has no "type" constraint (e.g. it is a bare
+  // "$ref", a composition keyword like "oneOf", or genuinely unconstrained).
+  repeated string types = 2;
+}
+
+// Output for DescribeSchema: structural metadata read off a compiled schema
+// — draft, root type, documentation annotations, and top-level properties —
+// without validating any instance against it.
+message DescribeSchemaResponse {
+  // The effective draft the schema compiled under: one of "4", "6", "7",
+  // "2019", "2020" (see ValidateRequest.draft for what each means). Detected
+  // from "$schema" when present, else the requested/default draft.
+  string draft = 1;
+  // The JSON types the schema root allows ("object", "array", "string", ...).
+  // Resolved through one level of a root-level "$ref" when present. Empty
+  // when the schema is type-unconstrained (or is a boolean schema).
+  repeated string types = 2;
+  // True if the schema document is the JSON literal "true" or "false"
+  // (a boolean schema, valid from Draft 6 onward) rather than an object.
+  bool is_boolean_schema = 3;
+  // Meaningful only when is_boolean_schema is true: the schema's boolean
+  // value ("true" accepts every instance, "false" accepts none).
+  bool boolean_schema_value = 4;
+  // The schema's "title" annotation, if any.
+  string title = 5;
+  // The schema's "description" annotation, if any.
+  string description = 6;
+  // The "required" property names declared at the schema root. Resolved
+  // through one level of a root-level "$ref" when present.
+  repeated string required = 7;
+  // The properties declared in the schema root's "properties", each with its
+  // own type constraint. Resolved through one level of a root-level "$ref"
+  // when present. Sorted by name for deterministic output.
+  repeated SchemaProperty properties = 8;
+  // True if the schema root is itself a "$ref" to another (internal)
+  // location. When true, "types"/"required"/"properties" above already
+  // reflect one level of resolution through that reference.
+  bool has_ref = 9;
+  // The schema's "deprecated" annotation.
+  bool deprecated = 10;
+  // The schema's "readOnly" annotation.
+  bool read_only = 11;
+  // The schema's "writeOnly" annotation.
+  bool write_only = 12;
+  // True if the schema root declares a "default" value.
+  bool has_default = 13;
+  // The schema's "default" value, re-serialized as JSON text. Empty when
+  // has_default is false.
+  string default_json = 14;
+  // The number of entries in the schema's "examples" annotation (0 if absent).
+  int32 examples_count = 15;
+  // Set (non-empty) only when the schema could not be compiled at all
+  // (malformed JSON, rejected external "$ref", meta-schema violation, unknown
+  // "draft", or oversized input). In that case every other field is at its
+  // zero value. Use CheckSchema first if you need the detailed reasons a
+  // schema fails to compile.
+  string error = 16;
+}
