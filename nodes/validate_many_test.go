@@ -105,3 +105,21 @@ func TestValidateMany_Empty(t *testing.T) {
 		t.Errorf("empty batch: want no error and no results, got error=%q results=%d", got.Error, len(got.Results))
 	}
 }
+
+// TestValidateMany_NonObjectSchemaDocument: a schema document that is valid
+// JSON but not an object or boolean (array, string, number, null) is not a
+// legal JSON Schema document — it fails the whole call with a schema-level
+// error. Regression test for a nil-pointer panic found by adversarial review
+// in the shared compileSchema helper (it previously crashed the whole
+// process on this shape instead of short-circuiting with an error).
+func TestValidateMany_NonObjectSchemaDocument(t *testing.T) {
+	for _, schema := range []string{`[1,2,3]`, `[]`, `"hello"`, `42`, `null`} {
+		got := validateMany(t, &gen.ValidateManyRequest{Schema: schema, Instances: []string{`1`}})
+		if got.Error == "" {
+			t.Errorf("schema %s: expected a schema-level error", schema)
+		}
+		if len(got.Results) != 0 {
+			t.Errorf("schema %s: expected no results, got %d", schema, len(got.Results))
+		}
+	}
+}

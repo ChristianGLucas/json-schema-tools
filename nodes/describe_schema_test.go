@@ -354,6 +354,25 @@ func TestDescribeSchema_SizeLimit(t *testing.T) {
 	}
 }
 
+// TestDescribeSchema_NonObjectSchemaDocument: a schema document that is
+// valid JSON but not an object or boolean (array, string, number, null) is
+// not a legal JSON Schema document. Regression test for a nil-pointer panic
+// found by adversarial review in the shared compileSchema helper (it
+// previously crashed the whole process on this shape instead of reporting a
+// structured error, contradicting this package's own documented "never
+// crashes on malformed input" contract).
+func TestDescribeSchema_NonObjectSchemaDocument(t *testing.T) {
+	for _, schema := range []string{`[1,2,3]`, `[]`, `"hello"`, `42`, `null`} {
+		got := describeSchema(t, &gen.CheckSchemaRequest{Schema: schema})
+		if got.Error == "" {
+			t.Errorf("schema %s: expected an error", schema)
+		}
+		if len(got.Types) != 0 || got.Title != "" || got.IsBooleanSchema {
+			t.Errorf("schema %s: expected zero-value fields alongside error, got %+v", schema, got)
+		}
+	}
+}
+
 // TestDescribeSchema_Deterministic: identical input yields byte-identical
 // output across repeated calls (property ordering in particular).
 func TestDescribeSchema_Deterministic(t *testing.T) {

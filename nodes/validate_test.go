@@ -333,4 +333,22 @@ func TestValidate_ErrorPaths(t *testing.T) {
 	}
 }
 
+// TestValidate_NonObjectSchemaDocument: a schema document that is valid JSON
+// but not an object or boolean (array, string, number, null) is not a legal
+// JSON Schema document at all. Regression test for a nil-pointer panic found
+// by adversarial review in the shared compileSchema helper (it previously
+// crashed the whole process on this shape instead of returning the
+// structured error this package's axiom.yaml description promises).
+func TestValidate_NonObjectSchemaDocument(t *testing.T) {
+	for _, schema := range []string{`[1,2,3]`, `[]`, `"hello"`, `42`, `null`} {
+		got := validate(t, &gen.ValidateRequest{Schema: schema, Instance: `1`})
+		if got.Error == "" {
+			t.Errorf("schema %s: expected a structured error, got none (valid=%v)", schema, got.Valid)
+		}
+		if got.Valid {
+			t.Errorf("schema %s: expected valid=false alongside the error", schema)
+		}
+	}
+}
+
 var _ axiom.Context = (*testContext)(nil) // compile-time interface check

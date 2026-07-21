@@ -71,6 +71,20 @@ func compileSchema(schemaText, draft string, assertFormats bool) (*jsonschema.Sc
 	if err != nil {
 		return nil, fmt.Errorf("schema is not valid JSON: %v", err)
 	}
+	// A JSON Schema document is either an object (the normal case) or, from
+	// Draft 6 onward, the bare boolean literal "true"/"false". Any other
+	// top-level JSON shape (array, string, number, null) is not a valid
+	// schema document at all — and, critically, the underlying compiler
+	// assumes this invariant and panics (nil-pointer dereference deep in its
+	// meta-schema resolution) rather than erroring if it is violated. Reject
+	// it here, before it ever reaches the compiler, so malformed input always
+	// yields a structured error instead of crashing the whole process.
+	switch doc.(type) {
+	case bool, map[string]any:
+		// ok
+	default:
+		return nil, fmt.Errorf("schema must be a JSON object or boolean (true/false), got %s", jsonKindName(doc))
+	}
 	c := jsonschema.NewCompiler()
 	c.UseLoader(denyLoader{}) // block file:// and http(s):// $ref resolution
 	c.DefaultDraft(d)
@@ -85,6 +99,23 @@ func compileSchema(schemaText, draft string, assertFormats bool) (*jsonschema.Sc
 		return nil, err
 	}
 	return sch, nil
+}
+
+// jsonKindName names the JSON kind of a value decoded by jsonschema.UnmarshalJSON
+// (which uses json.Number for numbers), for a clear error message.
+func jsonKindName(v any) string {
+	switch v.(type) {
+	case nil:
+		return "null"
+	case []any:
+		return "array"
+	case string:
+		return "string"
+	case json.Number:
+		return "number"
+	default:
+		return fmt.Sprintf("%T", v)
+	}
 }
 
 // validateInstance validates one instance JSON string against a compiled schema.

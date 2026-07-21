@@ -134,8 +134,11 @@ message SchemaProperty {
   // The property name.
   string name = 1;
   // The JSON types this property allows ("string", "integer", "object", ...).
-  // Empty when the property has no "type" constraint (e.g. it is a bare
-  // "$ref", a composition keyword like "oneOf", or genuinely unconstrained).
+  // A property that is itself a bare "$ref" is resolved through one level
+  // (like the schema-root "types" field above), so its target's types are
+  // reported here. Empty when there is still no "type" constraint after that
+  // — e.g. a composition keyword like "oneOf", a "$ref" chain more than one
+  // level deep, or genuinely unconstrained.
   repeated string types = 2;
 }
 

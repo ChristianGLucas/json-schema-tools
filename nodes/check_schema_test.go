@@ -106,3 +106,20 @@ func TestCheckSchema_DraftDefault(t *testing.T) {
 		t.Errorf("unknown draft should produce a processing error")
 	}
 }
+
+// TestCheckSchema_NonObjectSchemaDocument: a schema document that is valid
+// JSON but not an object or boolean (array, string, number, null) is not a
+// legal JSON Schema document. Regression test for a nil-pointer panic found
+// by adversarial review in the shared compileSchema helper (it previously
+// crashed the whole process on this shape instead of reporting invalid).
+func TestCheckSchema_NonObjectSchemaDocument(t *testing.T) {
+	for _, schema := range []string{`[1,2,3]`, `[]`, `"hello"`, `42`, `null`} {
+		got := checkSchema(t, &gen.CheckSchemaRequest{Schema: schema})
+		if got.Valid {
+			t.Errorf("schema %s: expected invalid, got valid", schema)
+		}
+		if len(got.Errors) == 0 {
+			t.Errorf("schema %s: expected structured errors explaining why it is not a usable schema", schema)
+		}
+	}
+}
