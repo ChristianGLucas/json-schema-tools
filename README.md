@@ -16,9 +16,12 @@ input, performs no I/O, and returns the same result for the same input.
 | **Validate** | Validate one JSON instance against one JSON Schema. Returns `valid` plus structured `errors` (each with the instance path, the failing schema keyword path, and a message). |
 | **ValidateMany** | Validate many instances against a single schema in one call (the schema is compiled once). Returns one result per instance, in input order. |
 | **CheckSchema** | Check that a document is itself a well-formed, compilable JSON Schema for the detected/selected draft, with structured reasons when it is not. |
+| **DescribeSchema** | Compile a schema and report structural metadata about the schema itself — no instance needed: effective draft, root JSON types, `title`/`description`/`deprecated`/`readOnly`/`writeOnly` annotations, `required` property names, and top-level `properties` with their own types. A root-level `$ref` is resolved through one level. Boolean schemas (`true`/`false`) are reported via `is_boolean_schema`. |
 
-All three take the schema and instance(s) as **JSON text** (strings), so they
-compose with any node that produces JSON.
+All four take the schema (and, where applicable, instance/instances) as
+**JSON text** (strings), so they compose with any node that produces JSON.
+`DescribeSchema` shares its input message (`CheckSchemaRequest`) with
+`CheckSchema` — both just need a schema and an optional draft.
 
 ### Draft selection
 
