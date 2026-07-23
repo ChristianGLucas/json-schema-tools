@@ -1,6 +1,6 @@
 # json-schema-tools
 
-Composable **JSON Schema validation** nodes for the [Axiom](https://axiom.dev)
+Composable **JSON Schema validation** nodes for the [Axiom](https://axiomide.com)
 marketplace, wrapping the Apache-2.0
 [`santhosh-tekuri/jsonschema/v6`](https://github.com/santhosh-tekuri/jsonschema)
 library — a validator that passes the official JSON Schema Test Suite for
