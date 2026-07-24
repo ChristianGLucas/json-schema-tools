@@ -2,6 +2,7 @@ package nodes_test
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	gen "christiangeorgelucas/json-schema-tools/gen"
@@ -344,13 +345,16 @@ func TestDescribeSchema_UnknownDraft(t *testing.T) {
 	}
 }
 
-// TestDescribeSchema_SizeLimit: oversized schema input is rejected before
-// compilation, mirroring the other nodes' size gate.
-func TestDescribeSchema_SizeLimit(t *testing.T) {
-	huge := `{"type":"string","title":"` + string(make([]byte, 1<<21)) + `"}`
+// TestDescribeSchema_LargeSchema: a large schema is not size-capped by the
+// node (that's the platform's job) — it must compile and describe cleanly.
+func TestDescribeSchema_LargeSchema(t *testing.T) {
+	huge := `{"type":"string","title":"` + strings.Repeat("x", 1<<21) + `"}`
 	got := describeSchema(t, &gen.CheckSchemaRequest{Schema: huge})
-	if got.Error == "" {
-		t.Errorf("oversized schema: expected a size-limit error")
+	if got.Error != "" {
+		t.Errorf("large schema: want no error, got %q", got.Error)
+	}
+	if len(got.Types) != 1 || got.Types[0] != "string" {
+		t.Errorf("large schema: want type [string], got %v", got.Types)
 	}
 }
 

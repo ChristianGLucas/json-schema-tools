@@ -12,15 +12,6 @@ import (
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
 )
 
-// Size limits bound the caller-controlled cost of a request. They are checked
-// against the RAW input string length, before any JSON parsing or compilation.
-const (
-	maxSchemaBytes    = 1 << 20  // 1 MiB per schema document
-	maxInstanceBytes  = 4 << 20  // 4 MiB per instance
-	maxInstancesCount = 1000     // instances per ValidateMany call
-	maxInstancesBytes = 16 << 20 // 16 MiB total across a ValidateMany batch
-)
-
 // schemaBaseURL is an in-memory base URI for the compiled schema. Using a
 // custom scheme keeps compilation entirely in memory: no filesystem or network
 // base is ever consulted.

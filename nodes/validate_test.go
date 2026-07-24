@@ -306,8 +306,10 @@ func TestValidate_DraftSelection(t *testing.T) {
 	}
 }
 
-// TestValidate_ErrorPaths covers malformed input and size limits — the
-// structured error contract, never a crash.
+// TestValidate_ErrorPaths covers malformed input and large-payload handling —
+// the structured error/result contract, never a crash. Payload/count size
+// caps are the platform's job (transport layer), not the node's; a node is a
+// pure function and must handle whatever the platform lets through.
 func TestValidate_ErrorPaths(t *testing.T) {
 	// Malformed schema JSON.
 	if got := validate(t, &gen.ValidateRequest{Schema: `{"type":`, Instance: `1`}); got.Error == "" || got.Valid {
@@ -321,15 +323,16 @@ func TestValidate_ErrorPaths(t *testing.T) {
 	if got := validate(t, &gen.ValidateRequest{Schema: `{"minLength":"five"}`, Instance: `"x"`}); got.Error == "" {
 		t.Errorf("schema violating meta-schema should produce a processing error")
 	}
-	// Oversize schema.
+	// Large schema: no cap in the node itself (platform's job) — must compile
+	// and validate cleanly rather than crash or reject on size alone.
 	big := `{"type":"string","description":"` + strings.Repeat("x", 1<<20) + `"}`
-	if got := validate(t, &gen.ValidateRequest{Schema: big, Instance: `"x"`}); got.Error == "" || !strings.Contains(got.Error, "size limit") {
-		t.Errorf("oversize schema: want size-limit error, got %q", got.Error)
+	if got := validate(t, &gen.ValidateRequest{Schema: big, Instance: `"x"`}); got.Error != "" || !got.Valid {
+		t.Errorf("large schema: want valid+no error, got error=%q valid=%v", got.Error, got.Valid)
 	}
-	// Oversize instance.
+	// Large instance: same — validated, not size-rejected.
 	bigInst := `"` + strings.Repeat("y", (4<<20)+10) + `"`
-	if got := validate(t, &gen.ValidateRequest{Schema: `{"type":"string"}`, Instance: bigInst}); got.Error == "" || !strings.Contains(got.Error, "size limit") {
-		t.Errorf("oversize instance: want size-limit error, got %q", got.Error)
+	if got := validate(t, &gen.ValidateRequest{Schema: `{"type":"string"}`, Instance: bigInst}); got.Error != "" || !got.Valid {
+		t.Errorf("large instance: want valid+no error, got error=%q valid=%v", got.Error, got.Valid)
 	}
 }
 

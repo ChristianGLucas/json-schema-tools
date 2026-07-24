@@ -86,15 +86,26 @@ func TestValidateMany_SchemaErrorShortCircuits(t *testing.T) {
 	}
 }
 
-// TestValidateMany_Limits enforces the batch-count bound.
-func TestValidateMany_Limits(t *testing.T) {
+// TestValidateMany_LargeBatch: a large batch is not size/count-capped by the
+// node (that's the platform's job) — it must process cleanly, per-instance,
+// rather than crash or reject on count alone.
+func TestValidateMany_LargeBatch(t *testing.T) {
 	instances := make([]string, 1001)
 	for i := range instances {
 		instances[i] = `1`
 	}
 	got := validateMany(t, &gen.ValidateManyRequest{Schema: `{"type":"integer"}`, Instances: instances})
-	if got.Error == "" {
-		t.Errorf("1001 instances: expected a count-limit error")
+	if got.Error != "" {
+		t.Errorf("1001 instances: want no processing error, got %q", got.Error)
+	}
+	if len(got.Results) != len(instances) {
+		t.Errorf("1001 instances: want %d results, got %d", len(instances), len(got.Results))
+	}
+	for i, r := range got.Results {
+		if !r.Valid {
+			t.Errorf("instance %d: want valid, got errors=%v error=%q", i, r.Errors, r.Error)
+			break
+		}
 	}
 }
 

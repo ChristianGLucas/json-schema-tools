@@ -1,5 +1,5 @@
 name: christiangeorgelucas/json-schema-tools
-version: 0.4.0
+version: 0.4.1
 language: go
 description: >-
   Composable JSON Schema validation nodes — validate an instance against a
@@ -42,8 +42,8 @@ nodes:
         detected or selected draft, returning valid=true or a list of structured
         reasons why not (invalid JSON, a meta-schema violation, or an
         unresolvable/rejected "$ref"). Useful for validating a schema before you
-        rely on it. External "$ref" resolution is disabled; an unknown draft or
-        oversized input is reported via the error field.
+        rely on it. External "$ref" resolution is disabled; an unknown draft is
+        reported via the error field.
       input: CheckSchemaRequest
       output: CheckSchemaResponse
     - name: DescribeSchema
